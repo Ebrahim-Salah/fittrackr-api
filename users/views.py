@@ -1,12 +1,9 @@
-from django.shortcuts import render
 from django.contrib.auth.models import User
+from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 @api_view(['POST'])
 def register(request):
@@ -45,9 +42,24 @@ def register(request):
 
 @api_view(['POST'])
 def login(request):
+    allowed_fields = {"email", "password"}
+    incoming_fields = set(request.data.keys())
+
+    # Reject unexpected fields
+    extra_fields = incoming_fields - allowed_fields
+    if extra_fields:
+        return Response(
+            {
+                "error": "Unexpected fields provided",
+                "extra_fields": list(extra_fields)
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     email = request.data.get('email')
     password = request.data.get('password')
 
+    # Ensure required fields exist
     if not email or not password:
         return Response(
             {"error": "Email and password required"},
@@ -67,4 +79,4 @@ def login(request):
     return Response({
         "access": str(refresh.access_token),
         "refresh": str(refresh),
-    })
+    }, status=status.HTTP_200_OK)
